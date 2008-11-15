@@ -107,14 +107,6 @@ $.extend($.ui.tabs.prototype, {
 			$(window).bind('resize', handleResize);
 		}
 		
-		// special function defined to handle IE6 and IE7 resize issues
-		function handleResize() {
-			if (resizeTimer) clearTimeout(resizeTimer);
-			
-			if (windowHeight != $(window).height() || windowWidth != $(window).width()) 
-				resizeTimer = setTimeout(reinit, 100);
-		}
-		
 		function setMaxPageWidth(pageWidth, pageIndex) {
 			// add different of selectedTab and unselect tab to 
 			// total page width if tab is not selected in current page
@@ -123,26 +115,6 @@ $.extend($.ui.tabs.prototype, {
 			
 			if (pageWidth > maxPageWidth)
 				maxPageWidth = pageWidth;
-		}
-		
-		function destroy() {	
-			// remove buttons
-			$('.ui-tabs-paging-next', self.element).remove();
-			$('.ui-tabs-paging-prev', self.element).remove();
-			
-			// show all tabs
-			self.$lis.show();
-			
-			initialized = false;
-
-			$(window).unbind('resize', handleResize);
-		}
-		
-		function reinit() {	
-			windowHeight = $(window).height();
-			windowWidth = $(window).width();
-			destroy();
-			init();
 		}
 		
 		function page(direction) {					
@@ -197,6 +169,34 @@ $.extend($.ui.tabs.prototype, {
 		
 		function enableButton(direction) {
 			$('.ui-tabs-paging-'+direction, self.element).removeClass('ui-tabs-paging-disabled');
+		}
+		
+		// special function defined to handle IE6 and IE7 resize issues
+		function handleResize() {
+			if (resizeTimer) clearTimeout(resizeTimer);
+			
+			if (windowHeight != $(window).height() || windowWidth != $(window).width()) 
+				resizeTimer = setTimeout(reinit, 100);
+		}
+		
+		function reinit() {	
+			windowHeight = $(window).height();
+			windowWidth = $(window).width();
+			destroy();
+			init();
+		}
+		
+		function destroy() {	
+			// remove buttons
+			$('.ui-tabs-paging-next', self.element).remove();
+			$('.ui-tabs-paging-prev', self.element).remove();
+			
+			// show all tabs
+			self.$lis.show();
+			
+			initialized = false;
+
+			$(window).unbind('resize', handleResize);
 		}
 		
 		init();
