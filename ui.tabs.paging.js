@@ -42,7 +42,7 @@ $.extend($.ui.tabs.prototype, {
 			allTabsWidth = 0, currentPage = 0, maxPageWidth = 0, buttonWidth = 0,
 				pages = new Array(), tabWidths = new Array(), selectedTabWidths = new Array();
 			
-			containerWidth = $('ul:first',self.element).width();
+			containerWidth = $(self.element).width();
 			
 			// create next button			
 			$li = $('<li></li>')
