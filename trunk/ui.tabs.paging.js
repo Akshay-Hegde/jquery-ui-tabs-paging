@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2008, http://seyfertdesign.com/jquery/ui-tabs-paging.html
+Copyright (c) 2009, http://seyfertdesign.com/jquery/ui-tabs-paging.html
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,8 @@ $.extend($.ui.tabs.prototype, {
 			nextButton: '&#187;',
 			prevButton: '&#171;',
 			follow: false,
-			cycle: false
+			cycle: false,
+			selectOnAdd: false
 		};
 		
 		opts = jQuery.extend(opts, options);
@@ -52,7 +53,7 @@ $.extend($.ui.tabs.prototype, {
 				.html(opts.nextButton);
 			$li.append($a);
 			
-			self.$lis.eq(self.length()-1).after($li);
+			self.lis.eq(self.length()-1).after($li);
 			buttonWidth = $li.outerWidth({ margin: true });
 			
 			// create prev button
@@ -62,20 +63,20 @@ $.extend($.ui.tabs.prototype, {
 				.click(function() { page('prev'); return false; })
 				.html(opts.prevButton);
 			$li.append($a);
-			self.$lis.eq(0).before($li);
+			self.lis.eq(0).before($li);
 			buttonWidth += $li.outerWidth({ margin: true });
 			
 			// loops through LIs, get width of each tab when selected and unselected.
-			self.$lis.each(function(i) {			
+			self.lis.each(function(i) {			
 				if (i == self.options.selected) {
 					selectedTabWidths[i] = $(this).outerWidth({ margin: true });
-					tabWidths[i] = self.$lis.eq(i).removeClass('ui-tabs-selected').outerWidth({ margin: true });
-					self.$lis.eq(i).addClass('ui-tabs-selected');
+					tabWidths[i] = self.lis.eq(i).removeClass('ui-tabs-selected').outerWidth({ margin: true });
+					self.lis.eq(i).addClass('ui-tabs-selected');
 					allTabsWidth += selectedTabWidths[i];					
 				} else {
 					tabWidths[i] = $(this).outerWidth({ margin: true });
-					selectedTabWidths[i] = self.$lis.eq(i).addClass('ui-tabs-selected').outerWidth({ margin: true });
-					self.$lis.eq(i).removeClass('ui-tabs-selected');
+					selectedTabWidths[i] = self.lis.eq(i).addClass('ui-tabs-selected').outerWidth({ margin: true });
+					self.lis.eq(i).removeClass('ui-tabs-selected');
 					allTabsWidth += tabWidths[i];
 				}
 			});
@@ -109,14 +110,14 @@ $.extend($.ui.tabs.prototype, {
 					maxPageWidth = (pageWidth + maxTabPadding);				
 
 			    // hide all tabs then show tabs for current page
-				self.$lis.hide().slice(pages[currentPage].start, pages[currentPage].end).show();
+				self.lis.hide().slice(pages[currentPage].start, pages[currentPage].end).show();
 				if (currentPage == (pages.length - 1) && !opts.cycle) 
 					disableButton('next');			
 				if (currentPage == 0 && !opts.cycle) 
 					disableButton('prev');
 				
 				// calculate the right padding for the next button
-				buttonPadding = containerWidth - maxPageWidth - buttonWidth - ($.browser.msie?8:0);
+				buttonPadding = containerWidth - maxPageWidth - buttonWidth - ($.browser.msie?8:0) - 10;
 				if (buttonPadding > 0) 
 					$('.ui-tabs-paging-next', self.element).css({ paddingRight: buttonPadding + 'px' });
 				
@@ -128,18 +129,19 @@ $.extend($.ui.tabs.prototype, {
 			$(window).bind('resize', handleResize);
 		}
 		
-		function page(direction) {					
+		function page(direction) {
 			currentPage = currentPage + (direction == 'prev'?-1:1);
 			
-			if (direction == 'prev' && currentPage < 0 && opts.cycle)
+			if ((direction == 'prev' && currentPage < 0 && opts.cycle) ||
+				(direction == 'next' && currentPage >= pages.length && !opts.cycle))
 				currentPage = pages.length - 1;
 			else if ((direction == 'prev' && currentPage < 0) || 
-			         (direction == 'next' && currentPage >= pages.length))
+					 (direction == 'next' && currentPage >= pages.length && opts.cycle))
 				currentPage = 0;
 			
 			var start = pages[currentPage].start;
 			var end = pages[currentPage].end;
-			self.$lis.hide().slice(pages[currentPage].start, pages[currentPage].end).show();
+			self.lis.hide().slice(pages[currentPage].start, pages[currentPage].end).show();
 			
 			if (direction == 'prev') {
 				enableButton('next');
@@ -181,7 +183,7 @@ $.extend($.ui.tabs.prototype, {
 			$('.ui-tabs-paging-prev', self.element).remove();
 			
 			// show all tabs
-			self.$lis.show();
+			self.lis.show();
 			
 			initialized = false;
 
@@ -193,13 +195,13 @@ $.extend($.ui.tabs.prototype, {
 		// add, remove, and destroy functions specific for paging 
 		$.extend($.ui.tabs.prototype, {	
 			pagingAdd: function(url, label, index) {
-				if (initialized) {
-					destroy();
-					this.add(url, label, index);
-					init();
-				} else {
-					this.add(url, label, index);
+				destroy();
+				this.add(url, label, index);
+				if (opts.selectOnAdd) {
+					if (index == undefined) index = this.lis.length-1;
+					this.select(index);
 				}
+				init();
 			},
 			pagingRemove: function(index) {
 				if (initialized) {
