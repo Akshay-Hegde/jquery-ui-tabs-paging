@@ -28,7 +28,8 @@ $.extend($.ui.tabs.prototype, {
 			prevButton: '&#171;',
 			follow: false,
 			cycle: false,
-			selectOnAdd: false
+			selectOnAdd: false,
+			pageOnSelect: false
 		};
 		
 		opts = $.extend(opts, options);
@@ -149,7 +150,7 @@ $.extend($.ui.tabs.prototype, {
 			
 			var start = pages[currentPage].start;
 			var end = pages[currentPage].end;
-			self.lis.hide().slice(pages[currentPage].start, pages[currentPage].end).show();
+			self.lis.hide().slice(start, end).show();
 			
 			if (direction == 'prev') {
 				enableButton('next');
@@ -197,7 +198,7 @@ $.extend($.ui.tabs.prototype, {
 			$(window).unbind('resize', handleResize);
 		}
 		
-		// reconfigure "ui.tabs" regular add/remove events to reinit paging
+		// reconfigure "ui.tabs" add/remove events to reinit paging
 		var tabsAdd = self.add;
 		self.add = function(url, label, index) {
 			// remove paging buttons before adding a tab
@@ -214,15 +215,47 @@ $.extend($.ui.tabs.prototype, {
 			init();
 		};
 		var tabsRemove = self.remove;
-		self.remove = function(url, label, index) {
+		self.remove = function(index) {
 			// remove paging buttons before removing a tab
 			if (initialized)
 				destroy();
 			
-			tabsRemove.apply(this, [url, label, index]);
+			tabsRemove.apply(this, [index]);
 			
 			// re-initialize paging buttons
 			init();
+		};
+		// reconfigure "ui.tabs" select event to change pages if new tab is selected
+		var tabsSelect = self.select;
+		self.select = function(index) {
+			tabsSelect.apply(this, [index]);
+			
+			// if paging is not initialized or it is not configured to 
+			// change pages when a new tab is selected, then do nothing
+			if (!initialized || !opts.pageOnSelect)
+				return;
+			
+			// find the new page based on index of the tab selected
+			for (i in pages) {
+				var start = pages[i].start;
+				var end = pages[i].end;
+				if (index >= start && index < end) {
+					// if the the tab selected is not within the currentPage of tabs, then change pages
+					if (i != currentPage) {
+						self.lis.hide().slice(start, end).show();
+						
+						currentPage = parseInt(i);
+						if (currentPage == 0) {
+							enableButton('next');
+							if (!opts.cycle && start <= 0) disableButton('prev');
+						} else {
+							enableButton('prev');
+							if (!opts.cycle && end >= self.length()) disableButton('next');
+						}
+					}
+					break;
+				}
+			}
 		};
 		
 		// add, remove, and destroy functions specific for paging 
