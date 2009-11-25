@@ -29,7 +29,7 @@ $.extend($.ui.tabs.prototype, {
 			follow: false,
 			cycle: false,
 			selectOnAdd: false,
-			pageOnSelect: false
+			followOnSelect: false
 		};
 		
 		opts = $.extend(opts, options);
@@ -232,7 +232,7 @@ $.extend($.ui.tabs.prototype, {
 			
 			// if paging is not initialized or it is not configured to 
 			// change pages when a new tab is selected, then do nothing
-			if (!initialized || !opts.pageOnSelect)
+			if (!initialized || !opts.followOnSelect)
 				return;
 			
 			// find the new page based on index of the tab selected
