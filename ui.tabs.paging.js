@@ -262,7 +262,8 @@ $.extend($.ui.tabs.prototype, {
 		$.extend($.ui.tabs.prototype, {
 			pagingDestroy: function() {
 				destroy();
-			}
+			},
+			pagingResize: reinit
 		});
 		
 		init();
