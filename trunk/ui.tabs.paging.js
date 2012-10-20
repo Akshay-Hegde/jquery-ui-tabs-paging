@@ -1,5 +1,5 @@
 /*
- * UI Tabs Paging extension - v1.1
+ * UI Tabs Paging extension - v1.2 (for jQuery 1.8.2 and jQuery UI 1.9.0)
  * 
  * Copyright (c) 2012, http://seyfertdesign.com/jquery/ui-tabs-paging.html
  * 
@@ -23,7 +23,7 @@
  *
  * Depends:
  *   jquery.ui.core.js
- *   jquery.ui.widget.js (when using jQuery UI 1.8+)
+ *   jquery.ui.widget.js
  *   jquery.ui.tabs.js
  */
 
@@ -31,10 +31,20 @@
 
 //  overridden ui.tabs functions
 var uiTabsFuncs = { 
-	select: $.ui.tabs.prototype.select, 
-	add: $.ui.tabs.prototype.add, 
-	remove: $.ui.tabs.prototype.remove
+	refresh: $.ui.tabs.prototype.refresh, 
+	option: $.ui.tabs.prototype.option
 };
+
+// DEPRECATED in jQuery UI 1.9
+if ( $.uiBackCompat !== false ) {
+	uiTabsFuncs = $.extend(
+			uiTabsFuncs, 
+			{
+				add: $.ui.tabs.prototype.add, 
+				remove: $.ui.tabs.prototype.remove 
+			}
+	);
+}
 	
 $.extend($.ui.tabs.prototype, {
 	paging: function(options) {
@@ -42,10 +52,10 @@ $.extend($.ui.tabs.prototype, {
 			tabsPerPage: 0,       // Max number of tabs to display at one time.  0 automatically sizing.
 			nextButton: '&#187;', // Text displayed for next button.
 			prevButton: '&#171;', // Text displayed for previous button.
-			follow: false,        // When clicking next button, automatically select first.  When clicking previous button automatically select last.
+			follow: false,        // When clicking next button, automatically make first tab active.  When clicking previous button automatically make last tab active.
 			cycle: false,         // When at end of list, next button returns to first page.  When at beginning of list previous button goes to end of list.
-			selectOnAdd: false,   // When new tab is added, select it automatically
-			followOnSelect: false // When tab is selected with javascript, automatically go move to that tab group.
+			activeOnAdd: false,   // When new tab is added, make tab active automatically
+			followOnActive: false // When tab is changed to active, automatically go move to that tab group.
 		};
 		
 		opts = $.extend(opts, options);
@@ -69,17 +79,17 @@ $.extend($.ui.tabs.prototype, {
 			
 			// loops through LIs, get width of each tab when selected and unselected.
 			var maxDiff = 0;  // the max difference between a selected and unselected tab
-			self.lis.each(function(i) {			
-				if (i == self.options.selected) {
-					selectedTabWidths[i] = $(this).outerWidth({ margin: true });
-					tabWidths[i] = self.lis.eq(i).removeClass('ui-tabs-selected').outerWidth({ margin: true });
-					self.lis.eq(i).addClass('ui-tabs-selected');
+			self.tabs.each(function(i) {			
+				if (i == self.options.active) {
+					selectedTabWidths[i] = $(this).outerWidth(true);
+					tabWidths[i] = self.tabs.eq(i).removeClass('ui-tabs-active').outerWidth(true);
+					self.tabs.eq(i).addClass('ui-tabs-active');
 					maxDiff = Math.min(maxDiff, Math.abs(selectedTabWidths[i] - tabWidths[i]));
 					allTabsWidth += tabWidths[i];
 				} else {
-					tabWidths[i] = $(this).outerWidth({ margin: true });
-					selectedTabWidths[i] = self.lis.eq(i).addClass('ui-tabs-selected').outerWidth({ margin: true });
-					self.lis.eq(i).removeClass('ui-tabs-selected');
+					tabWidths[i] = $(this).outerWidth(true);
+					selectedTabWidths[i] = self.tabs.eq(i).addClass('ui-tabs-active').outerWidth(true);
+					self.tabs.eq(i).removeClass('ui-tabs-active');
 					maxDiff = Math.max(maxDiff, Math.abs(selectedTabWidths[i] - tabWidths[i]));
 					allTabsWidth += tabWidths[i];
 				}
@@ -98,8 +108,8 @@ $.extend($.ui.tabs.prototype, {
 							.click(function() { page('next'); return false; })
 							.html(opts.nextButton));
 				
-				self.lis.eq(self.length()-1).after(li);
-				buttonWidth = li.outerWidth({ margin: true });
+				self.tablist.append(li);
+				buttonWidth = li.outerWidth(true);
 				
 				// create prev button
 				li = $('<li></li>')
@@ -107,8 +117,8 @@ $.extend($.ui.tabs.prototype, {
 					.append($('<a href="#"></a>')
 							.click(function() { page('prev'); return false; })
 							.html(opts.prevButton));
-				self.lis.eq(0).before(li);
-				buttonWidth += li.outerWidth({ margin: true });
+				self.tablist.prepend(li);
+				buttonWidth += li.outerWidth(true);
 				
 				// TODO determine fix for padding issues to next button
 				buttonWidth += 19; 
@@ -134,13 +144,13 @@ $.extend($.ui.tabs.prototype, {
 					}
 					pages[pageIndex].end = i+1;
 					pageWidth += tabWidths[i];
-					if (i == self.options.selected) currentPage = pageIndex;
+					if (i == self.options.active) currentPage = pageIndex;
 				}
 				if ((pageWidth + maxTabPadding) > maxPageWidth)	
 					maxPageWidth = (pageWidth + maxTabPadding);				
 
 			    // hide all tabs then show tabs for current page
-				self.lis.hide().slice(pages[currentPage].start, pages[currentPage].end).show();
+				self.tabs.hide().slice(pages[currentPage].start, pages[currentPage].end).show();
 				if (currentPage == (pages.length - 1) && !opts.cycle) 
 					disableButton('next');			
 				if (currentPage == 0 && !opts.cycle) 
@@ -172,16 +182,16 @@ $.extend($.ui.tabs.prototype, {
 			
 			var start = pages[currentPage].start;
 			var end = pages[currentPage].end;
-			self.lis.hide().slice(start, end).show();
+			self.tabs.hide().slice(start, end).show();
 			
 			if (direction == 'prev') {
 				enableButton('next');
-				if (opts.follow && (self.options.selected < start || self.options.selected > (end-1))) self.select(end-1);
+				if (opts.follow && (self.options.active < start || self.options.active > (end-1))) self.option('active', end-1);
 				if (!opts.cycle && start <= 0) disableButton('prev');
 			} else {
 				enableButton('prev');
-				if (opts.follow && (self.options.selected < start || self.options.selected > (end-1))) self.select(start);
-				if (!opts.cycle && end >= self.length()) disableButton('next');
+				if (opts.follow && (self.options.active < start || self.options.active > (end-1))) self.option('active', start);
+				if (!opts.cycle && end >= self.tabs.length) disableButton('next');
 			}
 		}
 		
@@ -211,7 +221,7 @@ $.extend($.ui.tabs.prototype, {
 			$('.ui-tabs-paging-prev', self.element).remove();
 			
 			// show all tabs
-			self.lis.show();
+			self.tabs.show();
 			
 			initialized = false;
 			
@@ -221,73 +231,95 @@ $.extend($.ui.tabs.prototype, {
 		
 		
 		// ------------- OVERRIDDEN PUBLIC FUNCTIONS -------------
-		// temporarily remove paging buttons before adding a tab
-		self.add = function(url, label, index) {
-			if (initialized)
+		self.option = function(optionName, value) {
+			uiTabsFuncs.option.apply(this, [optionName, value]);
+
+			// if "followOnActive" is true, then move page when selection changes
+			if (optionName == "active")
 			{
-				destroy();
+				// if paging is not initialized or it is not configured to 
+				// change pages when a new tab is active, then do nothing
+				if (!initialized || !opts.followOnActive)
+					return this;
 
-				uiTabsFuncs.add.apply(this, [url, label, index]);
+				// find the new page based on index of the active tab
+				for (var i in pages) {
+					var start = pages[i].start;
+					var end = pages[i].end;
+					if (value >= start && value < end) {
+						// if the the active tab is not within the currentPage of tabs, then change pages
+						if (i != currentPage) {
+							this.tabs.hide().slice(start, end).show();
 
-				if (opts.selectOnAdd) {
-					if (index == undefined) index = this.lis.length-1;
-					this.select(index);
-				}
-				// re-initialize paging buttons
-				init();
-
-				return this;
-			}
-			
-			return uiTabsFuncs.add.apply(this, [url, label, index]);
-		}
-		
-		// temporarily remove paging buttons before removing a tab
-		self.remove = function(index) {
-			if (initialized)
-			{
-				destroy();
-				uiTabsFuncs.remove.apply(this, [index]);
-				init();
-
-				return this;
-			}
-			
-			return uiTabsFuncs.remove.apply(this, [index]);
-		}
-		
-		// if "followOnSelect" is true, then move page when selection changes
-		self.select = function(index) {
-			uiTabsFuncs.select.apply(this, [index]);
-
-			// if paging is not initialized or it is not configured to 
-			// change pages when a new tab is selected, then do nothing
-			if (!initialized || !opts.followOnSelect)
-				return this;
-
-			// find the new page based on index of the tab selected
-			for (var i in pages) {
-				var start = pages[i].start;
-				var end = pages[i].end;
-				if (index >= start && index < end) {
-					// if the the tab selected is not within the currentPage of tabs, then change pages
-					if (i != currentPage) {
-						this.lis.hide().slice(start, end).show();
-
-						currentPage = parseInt(i);
-						if (currentPage == 0) {
-							enableButton('next');
-							if (!opts.cycle && start <= 0) disableButton('prev');
-						} else {
-							enableButton('prev');
-							if (!opts.cycle && end >= this.length()) disableButton('next');
+							currentPage = parseInt(i);
+							if (currentPage == 0) {
+								enableButton('next');
+								if (!opts.cycle && start <= 0) disableButton('prev');
+							} else {
+								enableButton('prev');
+								if (!opts.cycle && end >= this.tabs.length) disableButton('next');
+							}
 						}
+						break;
 					}
-					break;
 				}
 			}
 			
 			return this;
+		}
+		
+		self.refresh = function() {
+			if (initialized)
+			{
+				destroy();
+
+				uiTabsFuncs.refresh.apply(this);
+				
+				// re-initialize paging buttons
+				init();
+			}
+			
+			uiTabsFuncs.refresh.apply(this);
+		}
+		
+		
+		// DEPRECATED in jQuery UI 1.9
+		if ( $.uiBackCompat !== false )
+		{
+			// temporarily remove paging buttons before adding a tab
+			self.add = function(url, label, index) {
+				if (initialized)
+				{
+					destroy();
+
+					uiTabsFuncs.add.apply(this, [url, label, index]);
+
+					if (opts.activeOnAdd) {
+						if (index == undefined) index = this.tabs.length-1;
+						this.option('active', index);
+					}
+					// re-initialize paging buttons
+					init();
+
+					return this;
+				}
+
+				return uiTabsFuncs.add.apply(this, [url, label, index]);
+			}
+
+			// temporarily remove paging buttons before removing a tab
+			self.remove = function(index) {
+				if (initialized)
+				{
+					destroy();
+					uiTabsFuncs.remove.apply(this, [index]);
+					init();
+
+					return this;
+				}
+
+				return uiTabsFuncs.remove.apply(this, [index]);
+			}
 		}
 
 
