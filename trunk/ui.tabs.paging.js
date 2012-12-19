@@ -1,5 +1,5 @@
 /*
- * UI Tabs Paging extension - v1.2 (for jQuery 1.8.2 and jQuery UI 1.9.0)
+ * UI Tabs Paging extension - v1.2.1 (for jQuery 1.8.2 and jQuery UI 1.9.0)
  * 
  * Copyright (c) 2012, http://seyfertdesign.com/jquery/ui-tabs-paging.html
  * 
@@ -232,7 +232,7 @@ $.extend($.ui.tabs.prototype, {
 		
 		// ------------- OVERRIDDEN PUBLIC FUNCTIONS -------------
 		self.option = function(optionName, value) {
-			uiTabsFuncs.option.apply(this, [optionName, value]);
+			var retVal = uiTabsFuncs.option.apply(this, [optionName, value]);
 
 			// if "followOnActive" is true, then move page when selection changes
 			if (optionName == "active")
@@ -240,7 +240,7 @@ $.extend($.ui.tabs.prototype, {
 				// if paging is not initialized or it is not configured to 
 				// change pages when a new tab is active, then do nothing
 				if (!initialized || !opts.followOnActive)
-					return this;
+					return retVal;
 
 				// find the new page based on index of the active tab
 				for (var i in pages) {
@@ -265,7 +265,7 @@ $.extend($.ui.tabs.prototype, {
 				}
 			}
 			
-			return this;
+			return retVal;
 		}
 		
 		self.refresh = function() {
